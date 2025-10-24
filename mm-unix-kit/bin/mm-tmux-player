@@ -1,0 +1,29 @@
+#!/bin/sh
+# Common resolver: pick a session dir
+resolve_session_dir() {
+  if [ -n "${MM_SESSION-}" ] && [ -d "$MM_SESSION" ]; then
+    echo "$MM_SESSION"; return 0
+  fi
+  ROOT=${MM_ROOT:-/games/mm}
+  camp="${1-}"
+  [ -n "$camp" ] || { echo "Set MM_SESSION or pass <campaign>" >&2; return 1; }
+  dir=$(ls -1dt "$ROOT/campaign/$camp/sessions"/* 2>/dev/null | head -1)
+  [ -d "$dir" ] || { echo "No sessions found for $camp" >&2; return 1; }
+  echo "$dir"
+}
+# mm-tmux-player [campaign] [session_name]
+# Panes for: log tail, command shell; extra window for viewing map and character.
+sess="mmplay-${2:-$USER}"
+dir=$(resolve_session_dir "${1-}") || exit 2
+
+tmux new-session -d -s "$sess" -c "$dir" "printf '\033]0;cmd\007'; /bin/sh"
+tmux split-window -h -c "$dir" "printf '\033]0;log\007'; tail -f log.txt"
+tmux select-layout even-horizontal
+
+# window: map
+tmux new-window -t "$sess:" -n map -c "$dir" "watch -n 1 'sed -n \"1,200p\" map.txt'"
+# window: sheet (best-effort guess)
+pc_guess=$(ls -1 ../pcs/*.mm 2>/dev/null | head -1)
+tmux new-window -t "$sess:" -n sheet -c "$dir" "test -n \"$pc_guess\" && exec less \"$pc_guess\" || exec /bin/sh -lc 'echo \"Put your PC file in ../pcs and run: less ../pcs/<you>.mm\"; exec /bin/sh'"
+echo "tmux session: $sess (dir: $dir)"
+tmux attach -t "$sess"

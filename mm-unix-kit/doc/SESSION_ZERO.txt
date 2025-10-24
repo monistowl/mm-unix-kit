@@ -1,0 +1,119 @@
+Materia Mundi — Session Zero
+============================
+
+PURPOSE
+-------
+This document exists to help a new group align expectations before the
+first real session.  Read it aloud together, or have everyone skim it
+before rolling any dice.
+
+Materia Mundi is built around imagination, respect, and judgment.
+There are no hidden rule engines—only human rulings and shared notes.
+
+Tone & Genre
+------------
+Low fantasy verging on historical:
+•  1430s Flanders, on the edge of war and wonder.
+•  Magic is rare, expensive, and often theological.
+•  Miracles, alchemy, relics, and saints all draw from the same pool of power.
+•  Violence is quick, dirty, and consequential.
+•  Beauty coexists with plague, poverty, and devotion.
+
+Expect moral ambiguity, small victories, and the slow unveiling of a
+world that wants to test what you believe in.
+
+Boundaries & Safety
+-------------------
+Talk before you play.  Everyone has the right to a good time.
+
+•  The "X" rule: any player may type  mm-say "X"  to skip a scene or topic.
+   The ref will fade to black and move on.  No explanation required.
+•  The "Pause" rule:  mm-say "Pause"  to clarify tone, intensity, or consent.
+•  Keep violence and horror descriptive, not voyeuristic.
+•  Romance is optional; consent is absolute.
+•  Everyone can leave the session directory any time—real life comes first.
+
+If you are remote: agree on when logs will be pruned or archived.
+No one should feel watched forever.
+
+Group Roles
+------------
+Referee (GM):  describes the world, plays its inhabitants, decides outcomes.
+Players:  describe their characters’ actions and intentions.
+
+The referee is *not* an opponent; think of them as the camera operator.
+
+Goals of Play
+-------------
+1.  To explore and survive in a living world.
+2.  To interpret what "Materia"—the stuff of creation—means.
+3.  To build legends out of ordinary choices.
+4.  To make a story you’d want to read later in log.txt.
+
+Practical Setup
+---------------
+•  Everyone logged into the same host, ideally in the same UNIX group.
+•  Referee starts session:
+       mm-session start Antwerp-HYW 1
+       export MM_SESSION=.../sessions/1991-12-25_1
+•  Players join:
+       mm-session join Antwerp-HYW recent
+       export MM_SESSION=.../sessions/1991-12-25_1
+•  Optional: start tmux layouts (mm-tmux-ref / mm-tmux-player)
+•  Each player creates a character:
+       mm-char Antwerp-HYW new "Your Name"
+       mm-char Antwerp-HYW edit Your_Name.mm
+
+Starter Scenario: “Ashes at the Cathedral Gate”
+-----------------------------------------------
+Setting:  Antwerp, spring of 1432.  The plague banners are down but the
+bells still toll for debtors.  The bishop’s almoner seeks mercenaries to
+escort a reliquary from a burned village back to the cathedral.
+
+Hook:  You’ve been promised a silver coin each and safe lodging.
+The reliquary may—or may not—contain the skull of a child saint.
+
+Act I:  Street of the Chandlers
+    •  Smoke still rises from a block of ruined shops.
+    •  A crowd gathers around a blind monk muttering prophecies.
+    •  The reliquary is in the sacristy, guarded by one nervous cleric.
+    •  Strange lights were seen above the river last night.
+
+Scenes to try:
+    •  Negotiate with the almoner (Charm or Leadership)
+    •  Search the ruins (Perception or Survival)
+    •  Pray at the broken font (Wit or Faith)
+    •  Confront a starving wolf-hound that has followed the scent of ashes.
+
+Act II:  The River Road
+    •  A sudden storm, overturned cart, and the reliquary gone missing.
+    •  Follow tracks into the marsh (Survival)
+    •  Confront bandits or something worse (Initiative, Melee)
+    •  Recover or destroy the relic; each choice changes your fate.
+
+End of Session:  everyone writes a one-sentence epilogue in log.txt:
+    mm-say "Epilogue — Joan carries the relic in silence."
+
+Level Up
+--------
+If a character survives three sessions and contributes to the story,
+they may increase one ability modifier by +1 or learn a new skill at 6+.
+XP exists only as a shorthand for experience shared in logs.
+
+Etiquette
+---------
+•  Announce actions clearly:  mm-say "I check the door for traps."
+•  Let the ref set difficulties.
+•  Keep rolls visible; honesty is the heart of the system.
+•  Respect the text:  everyone can read the same files.
+
+Inspirations
+------------
+The Name of the Rose,  A Canticle for Leibowitz,  Tarkovsky’s Stalker,
+the Ars Goetia,  early D&D’s wilderness tables, and real medieval alchemy.
+
+Remember:  The world is a conversation between matter and meaning.
+Your words, typed into this terminal, make it real.
+
+
+-- End of SESSION_ZERO.txt --

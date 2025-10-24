@@ -1,0 +1,6 @@
+#!/bin/sh
+[ -n "${MM_SESSION-}" ] || { echo "MM_SESSION not set"; exit 2; }
+expr="$1"; who="${USER:-?}"
+out=$(roll "$expr" "$who" "$MM_SESSION")
+ts=$(date +"%H:%M:%S")
+printf "%s\t%s\tROLL\t%s → %s\n" "$ts" "$who" "$expr" "$out" | tee -a "$MM_SESSION/log.txt"

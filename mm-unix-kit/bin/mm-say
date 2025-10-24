@@ -1,0 +1,6 @@
+#!/bin/sh
+[ -n "${MM_SESSION-}" ] || { echo "MM_SESSION not set"; exit 2; }
+msg="${*:-}"
+ts=$(date +"%H:%M:%S")
+printf "%s\t%s\tSAY\t%s\n" "$ts" "${USER:-?}" "$msg" | tee -a "$MM_SESSION/log.txt" >/dev/null
+[ -p "$MM_SESSION/chat.fifo" ] && printf "%s\t%s\t%s\n" "$ts" "$USER" "$msg" > "$MM_SESSION/chat.fifo" || true

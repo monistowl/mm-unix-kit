@@ -1,0 +1,8 @@
+#!/bin/sh
+case "${1-}" in
+  show) sed -n '1,200p' "$MM_SESSION/map.txt";;
+  set)  cp "$2" "$MM_SESSION/map.txt";;
+  edit) ${EDITOR:-vi} "$MM_SESSION/map.txt";;
+  pin)  printf "%s %s %s\n" "$(date +%H:%M:%S)" "$2" "$3" >> "$MM_SESSION/state/pins";;
+  *)    echo "usage: mm-map {show|set <file>|edit|pin <x> <y>}"; exit 2;;
+esac

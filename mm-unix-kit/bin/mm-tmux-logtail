@@ -1,0 +1,8 @@
+#!/bin/sh
+# mm-tmux-logtail: open a minimalist tail-only view; good for wall monitors
+[ -n "${MM_SESSION-}" ] || { echo "MM_SESSION not set"; exit 2; }
+sess="mmlog-${USER:-anon}"
+tmux new-session -d -s "$sess" -c "$MM_SESSION" "tail -f log.txt"
+tmux split-window -v -c "$MM_SESSION" "tail -f rng.log"
+tmux select-layout even-vertical
+tmux attach -t "$sess"

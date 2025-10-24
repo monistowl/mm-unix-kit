@@ -1,0 +1,4 @@
+#!/bin/sh
+[ -n "${MM_SESSION-}" ] || { echo "MM_SESSION not set"; exit 2; }
+ts=$(date +"%H:%M:%S"); printf "%s\tGM\t%s\n" "$ts" "$*" >> "$MM_SESSION/gm.log"
+printf "%s\tGM\t(note recorded)\n" "$ts" >> "$MM_SESSION/log.txt"

@@ -1,0 +1,24 @@
+#!/bin/sh
+root=${MM_ROOT:-/games/mm}
+camp="$1"; cmd="$2"; shift 2
+pcs="$root/campaign/$camp/pcs"
+case "$cmd" in
+  new)
+    name="$1"; file="$pcs/$(echo "$name" | tr ' ' _).mm"
+    [ -f "$file" ] && { echo "exists: $file"; exit 1; }
+    sed "s/{{NAME}}/$name/g" "$root/lib/templates/character.mm" > "$file"
+    echo "Created $file";;
+  show)
+    file="$pcs/$1"; sed -n '1,200p' "$file";;
+  edit)
+    file="$pcs/$1"; ${EDITOR:-vi} "$file";;
+  stat)
+    file="$pcs/$1"
+    awk -F': *' '/^name:/{n=$2} /^class:/{c=$2} /^level:/{l=$2} /^abilities:/{a=1}
+      a && /STR:/{str=$2}
+      a && /DEX:/{dex=$2}
+      a && /CON:/{con=$2}
+      END{ printf("PC: %s  class=%s  lvl=%s  STR=%s DEX=%s CON=%s\\n", n,c,l,str,dex,con) }' "$file";;
+  *)
+    echo "usage: mm-char <campaign> {new NAME|show FILE|edit FILE|stat FILE}"
+esac

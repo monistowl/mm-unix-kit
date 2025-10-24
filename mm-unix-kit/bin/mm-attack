@@ -1,0 +1,4 @@
+#!/bin/sh
+kind="$1"; abl="$2"; lvl="$3"
+sum=$((abl + lvl))
+awk -v s="$sum" 'NR>1 && $1==s {print $2; exit}' /games/mm/lib/rules/save_threshold.tsv

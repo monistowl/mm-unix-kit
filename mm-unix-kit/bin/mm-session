@@ -1,0 +1,36 @@
+#!/bin/sh
+set -eu
+ROOT=${MM_ROOT:-/games/mm}
+case "${1-}" in
+  start)
+    [ $# -ge 3 ] || { echo "usage: mm-session start <campaign> <label>"; exit 2; }
+    camp=$2; label=$3
+    dir="$ROOT/campaign/$camp/sessions/$(date +%F)_$label"
+    mkdir -p "$dir/state"
+    : > "$dir/log.txt"; : > "$dir/gm.log"; : > "$dir/initiative.txt"; : > "$dir/rng.log"; : > "$dir/map.txt"
+    mkfifo "$dir/chat.fifo" "$dir/gm.fifo"
+    echo "Session at: $dir"
+    printf "export MM_SESSION=%s\n" "$dir"
+    ;;
+  join)
+    [ $# -ge 3 ] || { echo "usage: mm-session join <campaign> <date_or_recent>"; exit 2; }
+    camp=$2; sel=$3
+    if [ "$sel" = "recent" ]; then
+      dir=$(ls -1dt "$ROOT/campaign/$camp/sessions"/* | head -1)
+    else
+      dir="$ROOT/campaign/$camp/sessions/$sel"
+    fi
+    [ -d "$dir" ] || { echo "no such session"; exit 1; }
+    cd "$dir"
+    export MM_SESSION="$dir"
+    echo "Joined $MM_SESSION"
+    ;;
+  end)
+    [ -n "${MM_SESSION-}" ] || { echo "set MM_SESSION"; exit 2; }
+    rm -f "$MM_SESSION/chat.fifo" "$MM_SESSION/gm.fifo"
+    echo "Session ended: $MM_SESSION"
+    ;;
+  *)
+    echo "usage: mm-session {start|join|end} ..."
+    exit 2
+esac

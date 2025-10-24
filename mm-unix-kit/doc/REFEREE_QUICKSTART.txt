@@ -1,0 +1,197 @@
+Materia Mundi — Referee Quickstart
+==================================
+
+ROLE OF THE REFEREE
+-------------------
+You are the world: its weather, people, laws, and mysteries.
+
+Players control individuals within it.  You describe what they perceive,
+decide what happens when they act, and embody every creature they meet.
+
+You are also the system’s caretaker—maintaining directories, permissions,
+and the rhythm of play.
+
+Think of yourself as a conductor and archivist rather than a judge.
+
+
+REFEREE CHECKLIST
+-----------------
+Before Session 1:
+  [ ]  Create or verify a campaign directory under /games/mm/campaign/.
+  [ ]  Read SESSION_ZERO.txt aloud or summarize it.
+  [ ]  Make sure everyone has user accounts and correct group membership.
+  [ ]  Build the dice roller:  cd /games/mm && make
+  [ ]  Start a session:
+          mm-session start Antwerp-HYW 1
+          export MM_SESSION=.../sessions/<date>_1
+  [ ]  If using tmux:  mm-tmux-ref Antwerp-HYW gm
+  [ ]  Check that  log.txt, gm.log, and rng.log  exist.
+
+During play:
+  [ ]  Keep log.txt visible in one pane.
+  [ ]  Use gm.log for private notes or prep.
+  [ ]  Use mm-note to mark scene transitions.
+  [ ]  Use mm-map to edit or display maps.
+
+After play:
+  [ ]  mm-note "END OF SESSION"
+  [ ]  tar czf ../sessions/<date>.tgz .
+  [ ]  Optionally prune FIFOs, keep logs read-only.
+
+
+ADJUDICATION STYLE
+------------------
+Rules are simple on purpose.  If you can’t find an exact rule, invent one
+consistent with the fiction and record it in gm.log.
+
+Difficulty
+----------
+Normal tasks: roll at listed skill (e.g. 5+ on 1d6)
+Easy tasks:   mm-skill <N> easy
+Hard tasks:   mm-skill <N> hard
+Improbable:   require a Save or 2d6 test, not a skill.
+
+Combat
+------
+1.  Use mm-initiative to order turns.
+2.  Attacks:
+        mm-attack melee +1 1     # STR+1, level 1 → returns target number
+        mm-roll d20              # success if ≥ target
+3.  Damage is whatever fits the weapon—use 1d6 or 1d8 for most.
+4.  Enemies act when their initiative comes up; keep it fast.
+
+Saves
+-----
+Call for saves when failure would be serious but survivable.
+Use the ability most relevant to the threat:
+  KD = Knockdown / Paralysis  (STR or CON)
+  DP = Death / Poison         (CON)
+  BR = Blast / Ray            (DEX)
+  IC = Illusion / Confusion   (WIS)
+  CB = Curse / Beguilement    (CHA)
+  FD = Fear / Despair         (WIS or CHA)
+
+Example:
+    mm-save BR +1 1     → 13
+    Player rolls d20.  A 13 or higher succeeds.
+
+Skill Examples
+--------------
+Finesse   — pick locks, disarm traps
+Perception— spot hidden doors, hear noises
+Lore      — recall old stories, read inscriptions
+Charm     — convince, negotiate, seduce
+Wit       — improvise, think fast, outsmart
+
+n-in-6 rolls keep the classic dungeon feel—low success means tension.
+
+Movement & Maps
+---------------
+Every area is just text.  The simplest map uses ASCII:
+    mm-map edit     # to draw
+    mm-map show     # to display to players
+
+Use coordinates in notes or pins:
+    mm-map pin 12 7 “Secret door”
+You can drop ready-made maps into lib/maps/ and copy them over.
+
+Encounters & Tables
+-------------------
+Use TSV tables for fast improvisation.
+
+Example:
+    mm-table /games/mm/lib/tables/wilderness_encounters.tsv
+You can make your own:
+    echo -e "2\tmerchant caravan\n1\togre" > lib/tables/road.tsv
+    mm-table lib/tables/road.tsv
+
+To spawn an encounter:
+    mm-note "Encounter: $(mm-table lib/tables/road.tsv)"
+
+Pacing & Scene Transitions
+--------------------------
+A good session alternates tension and recovery.
+Between each major event, change the tempo:
+  •  Conversation  (players talk)
+  •  Choice        (rolls or arguments)
+  •  Consequence   (ref narrates)
+  •  Quiet moment  (map editing, notes)
+  •  New hook      (mm-note, new direction)
+
+Mark each beat in log.txt with an mm-note line; this makes the session
+readable later.
+
+Narration
+----------
+Describe with the senses, not stats.
+Say what the characters *see, hear, and feel* before mentioning dice.
+
+Example:
+  “The reliquary rattles, as though something inside it breathes.”
+  (pause)
+  “Make a Fear save—mm-save FD +0 1”
+
+Log Discipline
+--------------
+Referees should:
+  •  Start each scene with mm-note “Scene: Cathedral crypt”
+  •  Use mm-note for NPC lines not spoken by a player.
+  •  Keep all rolls public.
+  •  Review rng.log occasionally; it proves honesty.
+
+Advancement
+-----------
+After 3 sessions, reward growth:
+  •  +1 to one ability modifier
+  •  or learn a new skill at 6+
+  •  or gain a special item, contact, or scar.
+
+Encourage epilogues.  Characters evolve through narrative, not points.
+
+Improvising NPCs
+----------------
+When you need one fast:
+  1.  Roll a trait on d6 twice (personality + quirk)
+          1 Curious   2 Bitter   3 Pious   4 Drunk   5 Kind   6 Cunning
+          1 Limp      2 Scar     3 Shakes  4 Squints 5 Laughs 6 Silent
+  2.  Give them one motive.
+  3.  Record in gm.log:
+          NPC: Brother Alois (Cunning, Laughs) — wants relic for himself.
+
+Keep them human.  Even monsters have reasons.
+
+Referee’s tmux Layout (optional)
+--------------------------------
+mm-tmux-ref <campaign>
+  pane 1: shell
+  pane 2: log tail
+  pane 3: gm.log tail
+  pane 4: live map view
+windows: maps / gm / rng
+Exit with  Ctrl-b d.
+
+Maintenance & Backups
+---------------------
+At end of night:
+  tar czf ../sessions/$(date +%F).tgz .
+  chmod a-w log.txt
+  cp gm.log gm/backup-$(date +%F).txt  (optional)
+If hosting over telnet, rotate sessions weekly.
+
+Custom Content
+---------------
+You can expand the world infinitely by editing text:
+  lib/tables/   → random events and treasures
+  lib/maps/     → dungeons, cities
+  pcs/ & npcs/  → stat blocks
+  stash/        → letters, relics, clues
+Try to stay within human-readable conventions: TSV, YAML-like lists, etc.
+
+Mindset
+-------
+You are not simulating reality; you are facilitating belief.
+
+Fair rulings.  Shared wonder.  No secrets the shell cannot show.
+
+
+-- End of REFEREE_QUICKSTART.txt --

@@ -1,0 +1,265 @@
+Materia Mundi — System Administration Guide
+===========================================
+
+PURPOSE
+-------
+This file documents how to host and maintain a shared installation of
+Materia Mundi on a multi-user UNIX system.  It assumes basic shell and
+permission familiarity, but no custom daemons or database setup.
+
+Everything runs through the filesystem and standard POSIX tools.
+
+
+BASIC LAYOUT
+------------
+Default install:
+    /games/mm-unix-kit/        — full source tree
+    /games/mm/                 — symlink to the above
+    /games/mm/bin/             — shell tools
+    /games/mm/lib/             — rules, maps, templates, tables
+    /games/mm/campaign/        — each world and its sessions
+
+Each campaign:
+    /games/mm/campaign/<world>/
+        pcs/        player characters (shared read/append)
+        npcs/       referee-only
+        sessions/   per-session directories
+        stash/      handouts, relics, etc.
+        maps/       ascii maps
+        README.md   setting info
+        SESSION_ZERO.txt
+        REFEREE_QUICKSTART.txt
+
+All data is plain text; no binaries except the tiny dice roller (roll).
+
+
+USER & GROUP SETUP
+------------------
+Create two UNIX groups:
+
+    groupadd mmref       # referees
+    groupadd mmplayers   # all players
+
+Assign:
+    usermod -aG mmref   <referee_username>
+    usermod -aG mmplayers <player_username>
+
+Permissions (typical):
+    chgrp -R mmref /games/mm
+    chmod -R g+rX /games/mm
+    find /games/mm -type d -exec chmod 2775 {} \;
+
+    chgrp -R mmplayers /games/mm/campaign/*/pcs
+    chmod -R 2755 /games/mm/campaign/*/pcs
+    chmod -R 2750 /games/mm/campaign/*/npcs
+
+This allows:
+  •  Referee to read/write everywhere.
+  •  Players to read and append in pcs/ and sessions/.
+  •  No one (except ref) can see npcs/ or gm.log.
+
+To verify:
+    namei -l /games/mm/campaign/Antwerp-HYW/pcs/Joan.mm
+
+
+HOSTING ENVIRONMENT
+-------------------
+Recommended:  local or private SSH/telnet shell host.
+Avoid web servers or remote terminals with aggressive I/O buffering.
+
+Ensure the following packages exist:
+    bash, tmux, make, gcc (or cc), awk, sed, coreutils
+
+Optional but helpful:
+    vim or nano, flock, gzip, cron, tree, diff, chattr (Linux).
+
+Network access is not required once installed.
+
+
+STARTUP SCRIPTS
+---------------
+You may add to /etc/profile.d/mm.sh:
+
+    export PATH=/games/mm/bin:$PATH
+    export MM_ROOT=/games/mm
+
+This lets any user call `mm-session` immediately after login.
+
+You can also create a convenience command:
+
+    ln -s /games/mm/bin/mm-tmux-player /usr/local/bin/play-mm
+
+
+SESSION ROTATION
+----------------
+Each session lives under:
+    /games/mm/campaign/<world>/sessions/<date>_<label>/
+
+To archive:
+    cd /games/mm/campaign/<world>/sessions
+    tar czf archive/$(date +%F)_<label>.tgz <date>_<label>
+
+To automate daily backups (via cron as root):
+
+    30 4 * * * tar czf /games/mm/backups/mm-$(date +\%F).tgz /games/mm/campaign
+
+Keep three months of archives; delete old ones manually or via find:
+
+    find /games/mm/backups -type f -mtime +90 -delete
+
+
+LOGS & AUDIT
+------------
+Every roll writes to rng.log with seed, expression, and timestamp.
+Every chat and action writes to log.txt.
+Referee notes write to gm.log.
+
+To verify honesty:
+    grep ROLL log.txt
+    grep -E "seed=" rng.log
+
+Consider making logs append-only:
+    chattr +a log.txt rng.log  (Linux only)
+To clear append-only:
+    chattr -a log.txt
+
+
+TMUX MANAGEMENT
+---------------
+Referees and players can start sessions independently.
+
+Check active tmux sessions:
+    tmux ls
+
+Attach or kill:
+    mm-tmux-attach <session>
+    mm-tmux-kill <session>
+
+Troubleshooting:
+    If “duplicate session” errors appear, run `tmux kill-server` (GM only).
+    If panes don’t update, check FIFO permissions or restart mm-session.
+
+Optional site-wide tmux defaults:
+    cp /games/mm/tmux.conf.example /etc/skel/.tmux.conf
+
+
+FIFO TROUBLESHOOTING
+--------------------
+chat.fifo and gm.fifo are created at session start.
+If players cannot communicate:
+    1. Check that chat.fifo exists and has correct perms:
+          ls -l $MM_SESSION/chat.fifo
+    2. If missing, recreate:
+          mkfifo $MM_SESSION/chat.fifo
+    3. Ensure group mmplayers has write access.
+    4. Referee can restart with:
+          mm-session end
+          mm-session start <campaign> <label>
+
+If tail -f log.txt stops updating, ensure background tails are still running
+and the log is writable.
+
+
+RESOURCE LIMITS
+---------------
+You can safely host dozens of simultaneous players.
+Each open tmux window or FIFO is minimal overhead.
+
+For busy servers:
+    ulimit -n 1024
+    sysctl fs.file-max=...   (if needed)
+Logs rarely exceed a few MB per session.
+
+
+SECURITY NOTES
+--------------
+•  This is a collaborative text system; do not use on untrusted public shells.
+•  Restrict /games/mm write access to GMs only.
+•  Use separate UNIX accounts for each player.
+•  No script executes remote code or network calls.
+•  All RNG is local and auditable.
+
+
+UPGRADES
+--------
+To update scripts:
+    cd /games/mm-unix-kit
+    tar xzf new-mm-unix-kit.tar.gz --strip-components=1
+    make
+    chmod +x bin/mm-*
+
+To check what changed:
+    diff -ru old-kit/ mm-unix-kit/
+
+You can add new campaigns by copying template:
+    cp -r /games/mm/campaign/Antwerp-HYW /games/mm/campaign/MyWorld
+    rm -rf MyWorld/sessions/*
+
+
+BACKUPS
+-------
+Use rsync, tar, or git.
+Recommended git setup (for refs only):
+    cd /games/mm/campaign/
+    git init
+    git add -A
+    git commit -m "Initial campaign state"
+    git add sessions/2025-*
+    git commit -m "Session logs"
+
+This keeps history diffable and reviewable.
+
+
+DISASTER RECOVERY
+-----------------
+If FIFOs vanish or locks persist:
+    rm -f $MM_SESSION/chat.fifo $MM_SESSION/gm.fifo $MM_SESSION/turnlock
+    mkfifo $MM_SESSION/chat.fifo $MM_SESSION/gm.fifo
+    : > $MM_SESSION/turnlock
+
+If tmux refuses to attach:
+    tmux kill-server
+    mm-tmux-ref <campaign>
+
+If someone overwrites log.txt:
+    recover from previous nightly tarball.
+
+
+NEW HOST SETUP SUMMARY
+----------------------
+1.  Install UNIX kit under /games/mm-unix-kit
+2.  Build dice roller with `make`
+3.  Set PATH and MM_ROOT
+4.  Create mmref and mmplayers groups
+5.  Copy sample campaign
+6.  Test session start/join
+7.  Optionally configure cron backups
+8.  Document local user policies in /games/mm/SERVER_RULES.txt
+
+
+CUSTOMIZATION
+-------------
+Admins may tailor:
+  •  /games/mm/lib/rules/save_threshold.tsv
+  •  /games/mm/lib/tables/*.tsv
+  •  /games/mm/lib/maps/*.txt
+  •  ~/.tmux.conf
+  •  $EDITOR environment variable for player comfort.
+
+Encourage players to create new tools using the same pattern:
+text in → result out → append to log.
+
+
+END-OF-LIFE POLICY
+------------------
+When a campaign ends:
+    mv /games/mm/campaign/<world> /games/mm/archive/<world>_<date>
+    tar czf /games/mm/archive/<world>_<date>.tgz <world>_<date>
+    chown -R root:mmref /games/mm/archive/<world>_<date>.tgz
+    chmod 640 /games/mm/archive/<world>_<date>.tgz
+
+Keep history immutable; it is part of the world.
+
+Fair rulings.  Transparent logs.  No magic except what you make.
+
+-- End of SYSTEM_ADMIN.txt --

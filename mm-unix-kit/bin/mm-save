@@ -1,0 +1,6 @@
+#!/bin/sh
+# usage: mm-save <type> <ability_mod> <level>
+typ="$1"; abl="$2"; lvl="$3"
+sum=$((abl + lvl))
+awk -v s="$sum" 'NR>1{ if($1==s){ print $2; found=1; exit } }
+END{ if(!found) print 15 }' /games/mm/lib/rules/save_threshold.tsv

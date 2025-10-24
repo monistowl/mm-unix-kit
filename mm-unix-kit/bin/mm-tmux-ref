@@ -1,0 +1,35 @@
+#!/bin/sh
+# Common resolver: pick a session dir
+resolve_session_dir() {
+  if [ -n "${MM_SESSION-}" ] && [ -d "$MM_SESSION" ]; then
+    echo "$MM_SESSION"; return 0
+  fi
+  ROOT=${MM_ROOT:-/games/mm}
+  camp="${1-}"
+  [ -n "$camp" ] || { echo "Set MM_SESSION or pass <campaign>" >&2; return 1; }
+  dir=$(ls -1dt "$ROOT/campaign/$camp/sessions"/* 2>/dev/null | head -1)
+  [ -d "$dir" ] || { echo "No sessions found for $camp" >&2; return 1; }
+  echo "$dir"
+}
+# mm-tmux-ref [campaign] [session_name]
+# Creates a tmux session with panes for: table log, gm log, command shell, map view.
+sess="mmref-${2:-$USER}"
+dir=$(resolve_session_dir "${1-}") || exit 2
+
+tmux new-session -d -s "$sess" -c "$dir" "printf '\033]0;cmd\007'; /bin/sh"
+# pane 0: cmd shell in session dir
+tmux split-window -h -c "$dir" "printf '\033]0;log\007'; tail -f log.txt"
+tmux split-window -v -c "$dir" "printf '\033]0;gm.log\007'; [ -f gm.log ] || : > gm.log; tail -f gm.log"
+tmux select-pane -t 0
+tmux split-window -v -c "$dir" "printf '\033]0;map\007'; [ -f map.txt ] || : > map.txt; watch -n 1 'sed -n \"1,200p\" map.txt'"
+tmux select-layout tiled
+
+# window 2: maps (editor)
+tmux new-window -t "$sess:" -n maps -c "$dir" "${EDITOR:-vi} map.txt"
+# window 3: gm (notes)
+tmux new-window -t "$sess:" -n gm -c "$dir" "/bin/sh -lc 'echo \"Type: mm-note <text>\"; exec /bin/sh'"
+# window 4: rng
+tmux new-window -t "$sess:" -n rng -c "$dir" "tail -f rng.log"
+
+echo "tmux session: $sess (dir: $dir)"
+tmux attach -t "$sess"

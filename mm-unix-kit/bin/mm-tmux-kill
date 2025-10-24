@@ -1,0 +1,3 @@
+#!/bin/sh
+sess="${1:?usage: mm-tmux-kill <session-name>}"
+tmux kill-session -t "$sess"

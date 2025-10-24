@@ -1,0 +1,10 @@
+#!/bin/sh
+# usage: mm-initiative [add <name> [init]] | next | list | clear
+f="$MM_SESSION/initiative.txt"; touch "$f"
+case "${1-}" in
+  add) echo "$(date +%H:%M:%S) $2 $3" >> "$f"; sort -k3nr -o "$f" "$f";;
+  next) head -1 "$f" | awk '{print $2}' | { read n || exit 0; tail -n +2 "$f" > "$f.tmp" && echo "$n" >> "$f.tmp" && mv "$f.tmp" "$f"; echo "→ $n"; };;
+  list) nl -ba "$f" | sed 's/^/  /';;
+  clear) : > "$f";;
+  *) echo "usage: mm-initiative {add|next|list|clear}"; exit 2;;
+esac

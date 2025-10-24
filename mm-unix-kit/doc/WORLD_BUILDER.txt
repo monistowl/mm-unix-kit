@@ -1,0 +1,218 @@
+ Materia Mundi — World Builder’s Guide
+=====================================
+
+PURPOSE
+-------
+This guide shows how to create a new campaign world or adapt an existing
+setting to the UNIX Materia Mundi framework.  It assumes you already
+understand the basics of sessions, characters, and logs.
+
+Everything here can be done with a text editor and a few shell commands.
+No scripting or compiling is required.
+
+
+THE PHILOSOPHY
+--------------
+Each world is a self-contained directory tree:
+    campaign/<WorldName>/
+        pcs/         → player characters
+        npcs/        → referee secrets
+        maps/        → ascii maps
+        stash/       → handouts, relics, props
+        lib/         → local rule tables (optional)
+        sessions/    → one subdirectory per session
+        README.md    → overview & lore
+        SESSION_ZERO.txt
+        REFEREE_QUICKSTART.txt
+
+You can have many worlds on one server.  Each one uses the same tools.
+
+
+CREATE A NEW WORLD
+------------------
+1.  Copy an existing campaign as a template:
+        cd /games/mm/campaign
+        cp -r Antwerp-HYW MyNewWorld
+        rm -rf MyNewWorld/sessions/*
+        rm -f  MyNewWorld/pcs/*.mm
+        echo "Materia Mundi — My New World" > MyNewWorld/README.md
+
+2.  Customize setting files:
+        vi MyNewWorld/README.md
+        vi MyNewWorld/SESSION_ZERO.txt
+        vi MyNewWorld/REFEREE_QUICKSTART.txt
+
+3.  Test it:
+        mm-session start MyNewWorld 1
+        export MM_SESSION=.../MyNewWorld/sessions/<date>_1
+        mm-say "New world online!"
+
+You now have a new playable universe.
+
+
+SETTING DESIGN
+--------------
+Keep it grounded, not encyclopedic.
+Each world should have:
+  •  A historical or mythic spine  (when & where)
+  •  A metaphysical thesis         (what is "Materia" here?)
+  •  Three major factions or powers
+  •  Three frontier regions worth exploring
+  •  A tone palette (grim, wondrous, comedic, tragic...)
+
+A one-page README is enough.  Players discover details through play.
+
+
+RULE VARIANTS
+-------------
+You may include a per-world rule directory:
+    campaign/<world>/lib/rules/
+
+Overrides load naturally; point mm-* scripts there by setting:
+
+    export MM_ROOT=/games/mm/campaign/<world>
+
+Examples:
+  •  Different save thresholds
+  •  Custom skill tables
+  •  New weapon types
+
+Keep format consistent with the main TSVs for portability.
+
+
+MAP MAKING
+----------
+ASCII maps are the heart of the system.
+Each map is just a text file with a header:
+
+    @ legend: #=wall .=floor D=door ~=water
+    @ size: 40x20
+    ########################################
+    #..D....#####....#.....................#
+    #........#..#....#........#####........#
+    ########################################
+
+Tips:
+  •  Use fixed width fonts.
+  •  Keep ≤80 columns for terminal fit.
+  •  Save under  campaign/<world>/maps/
+  •  Load during play:  mm-map set maps/dungeon1.txt
+  •  Edit live:  mm-map edit
+
+Dynamic mapping ideas:
+  •  Store “fog of war” by copying map.txt → map_player.txt and erasing sections.
+  •  Use comments (#@) for GM-only features.
+
+
+CREATING RANDOM TABLES
+----------------------
+Tables use simple tab-separated format:
+    weight<TAB>result
+
+Example:  lib/tables/forest_encounters.tsv
+    3   2d6 wolves
+    2   bandits (Ld 0, 1d6+2)
+    1   fae lights whisper “Go home”
+    1   lost child with relic fragment
+
+Usage:
+    mm-table lib/tables/forest_encounters.tsv
+    → outputs one result by weighted random choice.
+
+Combine with mm-note:
+    mm-note "Encounter: $(mm-table lib/tables/forest_encounters.tsv)"
+
+You can nest tables by including other filenames in results.
+
+Add subcategories for variety:
+    lib/tables/weather.tsv
+    lib/tables/omens.tsv
+    lib/tables/treasures.tsv
+
+
+REGIONAL STRUCTURE
+------------------
+For large worlds, mirror geography as subdirectories:
+    campaign/MyWorld/maps/City/
+    campaign/MyWorld/maps/Wilderness/
+    campaign/MyWorld/tables/CityEvents/
+    campaign/MyWorld/stash/Lore/
+
+Then use symbolic links for active regions:
+    ln -s maps/City/guildhall.txt map.txt
+
+This lets you “move” the party by changing symlinks.
+
+
+NARRATIVE SEEDS
+---------------
+If you want reusable prompts, create  lore.txt  or  rumors.tsv.
+Rumors table example:
+    3   “The duke’s astrologer vanished beneath the tower.”
+    1   “They say a saint walks the river when it freezes.”
+
+Run:  mm-table lib/tables/rumors.tsv  to inspire a scene.
+
+
+MULTI-REFEREE WORLDS
+--------------------
+Multiple refs can share a campaign:
+  •  Assign each one to group mmref.
+  •  Mark gm.log lines with initials.
+  •  Alternate running sessions by date.
+  •  Maintain a shared world bible under  /world-notes/
+
+Keep tone consistent by writing short post-session summaries:
+    mm-note "Summary: The bandits allied with the hermit."
+
+
+IN-UNIVERSE WRITING
+-------------------
+Encourage players to leave documents in-world:
+  •  stash/letters/
+  •  stash/maps/ (hand-drawn ASCII)
+  •  stash/journals/
+
+These can be referenced in later sessions or shared publicly.
+A living world grows through its text artifacts.
+
+
+ADVANCED IDEAS
+--------------
+•  Procedural generation:  combine mm-table + shell loops
+      for i in $(seq 1 5); do mm-table lib/tables/treasures.tsv; done
+
+•  “Dynamic weather” script in cron to rewrite a file daily.
+
+•  “World time” via timestamped note in gm.log each session start.
+
+•  Connect worlds:  soft-link characters across campaigns.
+
+•  Public archives:  git repo for pcs/ and logs (write-protected).
+
+
+DESIGN ETHOS
+------------
+Materia Mundi worlds are not software projects.
+They are *ritual documents*—logs of shared imagination.
+
+Favor clarity over detail.
+Leave mysteries unsolved.
+Make the next referee curious.
+
+
+MINIMAL TEMPLATE RECAP
+----------------------
+To build from scratch:
+
+    mkdir -p /games/mm/campaign/MyWorld/{pcs,npcs,maps,stash,sessions}
+    cp /games/mm/lib/templates/character.mm /games/mm/campaign/MyWorld/pcs/
+    echo "Materia Mundi — MyWorld" > /games/mm/campaign/MyWorld/README.md
+    echo "SessionZero coming soon" > /games/mm/campaign/MyWorld/SESSION_ZERO.txt
+    echo "RefQuickstart coming soon" > /games/mm/campaign/MyWorld/REFEREE_QUICKSTART.txt
+
+Then test:
+    mm-session start MyWorld 1
+    mm-say "First light over a new world."
+
+-- End of WORLD_BUILDER.txt --

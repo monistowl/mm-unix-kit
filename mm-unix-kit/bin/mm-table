@@ -1,0 +1,7 @@
+#!/bin/sh
+# usage: mm-table <file.tsv>
+f="$1"
+awk 'NR>1 {sum+=$1; row[NR]=$0; w[NR]=$1} END{
+  srand(); r=int(rand()*sum)+1; acc=0;
+  for(i=2;i<=NR;i++){ acc+=w[i]; if(r<=acc){ split(row[i],a,"\t"); print a[2]; exit } }
+}' "$f"

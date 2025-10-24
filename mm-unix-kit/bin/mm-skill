@@ -1,0 +1,19 @@
+#!/bin/sh
+# usage: mm-skill <threshold:2..6> [easy|hard]
+thr="$1"; mode="${2-}"
+expr="n6:${thr}+"
+if [ "$mode" = "easy" ]; then
+  roll "$expr" "$USER" "$MM_SESSION" >/dev/null; r1=$?
+  roll "$expr" "$USER" "$MM_SESSION" >/dev/null; r2=$?
+  if [ $r1 -eq 0 ] || [ $r2 -eq 0 ]; then ok=0; else ok=1; fi
+elif [ "$mode" = "hard" ]; then
+  roll "$expr" "$USER" "$MM_SESSION" >/dev/null; r1=$?
+  roll "$expr" "$USER" "$MM_SESSION" >/dev/null; r2=$?
+  if [ $r1 -eq 0 ] && [ $r2 -eq 0 ]; then ok=0; else ok=1; fi
+else
+  roll "$expr" "$USER" "$MM_SESSION"; exit $?
+fi
+ts=$(date +"%H:%M:%S")
+[ $ok -eq 0 ] && res="SUCCESS" || res="FAIL"
+printf "%s\t%s\tSKILL\t%s %s → %s\n" "$ts" "$USER" "n-in-6" "$mode" "$res" | tee -a "$MM_SESSION/log.txt"
+exit $ok

@@ -1,0 +1,15 @@
+# sum(ability + level) → threshold (d20 needs to meet/beat)
+sum	threshold
+-2	17
+-1	16
+0	15
+1	14
+2	13
+3	12
+4	11
+5	10
+6	9
+7	8
+8	7
+9	6
+10	5

@@ -1,0 +1,7 @@
+#!/bin/sh
+sess="${1:-last}"
+if [ "$sess" = "last" ]; then
+  tmux attach || { echo "No tmux server/session" >&2; exit 1; }
+else
+  tmux attach -t "$sess"
+fi

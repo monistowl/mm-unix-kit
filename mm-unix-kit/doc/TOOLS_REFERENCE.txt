@@ -1,0 +1,182 @@
+Materia Mundi — Tools Reference
+===============================
+
+Everything here runs from a UNIX shell.
+Use  `mm-session join`  or set  $MM_SESSION  before you begin.
+
+FILES & STRUCTURE
+-----------------
+campaign/<world>/pcs/          — player characters
+campaign/<world>/npcs/         — referee-only characters
+campaign/<world>/sessions/     — one folder per game night
+sessions/<date>_N/log.txt      — public chat & action log
+sessions/<date>_N/gm.log       — referee’s notes
+sessions/<date>_N/rng.log      — die roll history
+sessions/<date>_N/map.txt      — current map
+lib/tables/*.tsv               — random tables (TSV format)
+lib/maps/*.txt                 — sample ASCII maps
+lib/templates/character.mm     — blank character sheet
+
+
+SESSION MANAGEMENT
+------------------
+mm-session start <campaign> <label>
+    Create a new session directory and FIFOs.
+
+mm-session join <campaign> <date|recent>
+    Move into an existing session.
+
+mm-session end
+    Clean up FIFOs and close the session.
+
+Environment variables:
+    MM_ROOT    → base path (default /games/mm)
+    MM_SESSION → current session directory
+
+
+COMMUNICATION
+-------------
+mm-say <message>
+    Speak aloud.  Appends to log.txt and broadcasts via chat.fifo.
+
+mm-note <message>
+    GM-only note to gm.log; public marker in log.txt.
+
+mm-whisper <user> <text>     (optional)
+    Send a private note to a per-user log (if set up).
+
+
+ROLLING DICE
+------------
+mm-roll <expr>
+    Roll and log results.  Examples:
+        d20         — 1d20
+        2d6+1       — 2 six-sided dice +1
+        n6:5+        — n-in-6 skill test (success on 5 or 6)
+        coin        — flip a coin
+        2d20kh1     — roll 2d20, keep highest (advantage)
+        2d20kl1     — roll 2d20, keep lowest (disadvantage)
+
+Results print and log to rng.log for audit.
+
+mm-skill <threshold> [easy|hard]
+    Convenience wrapper for n-in-6 skills.
+        mm-skill 5+         → standard skill roll
+        mm-skill 5+ easy    → advantage
+        mm-skill 5+ hard    → disadvantage
+
+mm-attack <melee|ranged> <ability_mod> <level>
+    Prints target number for to-hit rolls (d20 ≥ target).
+
+mm-save <type> <ability_mod> <level>
+    Prints save target number.
+    Types: KD (knockdown), DP (death/poison), BR (blast/ray),
+           IC (illusion/confusion), CB (curse/beguilement),
+           FD (fear/despair)
+
+
+CHARACTERS
+----------
+mm-char <campaign> new "Name"
+    Create new character file in pcs/.
+
+mm-char <campaign> edit <file>
+    Open for editing (uses $EDITOR).
+
+mm-char <campaign> stat <file>
+    Quick summary line.
+
+Character files are plain text and can be edited manually.
+
+
+INITIATIVE & TURNS
+------------------
+mm-initiative add <name> <score>
+mm-initiative list
+mm-initiative next
+mm-initiative clear
+    Handles combat order; outputs to initiative.txt.
+
+Optionally serialize turns:
+    flock $MM_SESSION/turnlock mm-initiative next
+
+
+MAPS
+----
+mm-map show
+    Display map.txt (usually to players).
+mm-map edit
+    Edit current map.
+mm-map set <file>
+    Replace with another ASCII map.
+mm-map pin <x> <y>
+    Drop coordinate marker in state/pins.
+
+Maps are just text — draw walls with #, doors with D, etc.
+
+
+RANDOM TABLES
+--------------
+mm-table <file.tsv>
+    Pick a weighted random entry.
+    (First column = weight, second = result.)
+Example:
+    mm-table lib/tables/wilderness_encounters.tsv
+
+
+SESSION LOGGING
+---------------
+log.txt   — shared record of play
+gm.log    — private referee notes
+rng.log   — all random rolls with seeds
+initiative.txt — turn order
+
+To read logs live:
+    tail -f log.txt
+    tail -f gm.log
+
+
+TMUX HELPERS (optional)
+-----------------------
+mm-tmux-ref [campaign] [name]
+    Full referee layout (logs, gm.log, map view, rng window).
+
+mm-tmux-player [campaign] [name]
+    Two-pane player layout with map & character sheet windows.
+
+mm-tmux-logtail
+    Minimal dashboard for log.txt & rng.log.
+
+mm-tmux-attach [session|last]
+    Attach to existing tmux session.
+
+mm-tmux-kill <session>
+    End a tmux session.
+
+Example tmux conf provided in tmux.conf.example.
+
+
+TYPICAL PLAY LOOP
+-----------------
+Referee:
+    mm-session start <campaign> <n>
+    export MM_SESSION=.../sessions/<date>_<n>
+    tail -f log.txt &
+
+Players:
+    mm-session join <campaign> recent
+    export MM_SESSION=...
+    mm-say "I'm ready!"
+    mm-roll d20
+    mm-skill 5+ easy
+
+Referee adjudicates, updates map.txt, and adds notes.
+End session with:
+    mm-note "END OF SESSION"
+    tar czf ../sessions/$(date +%F).tgz .
+
+TIPS
+----
+•  Use “!” in tmux or shell to recall last command quickly.
+•  Keep all rolls visible; the system is its own audit trail.
+•  Everything is text—extend it, script it, share it.
