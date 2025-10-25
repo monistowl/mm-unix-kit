@@ -1,0 +1,4 @@
+#!/bin/sh
+model="${1:?usage: model-llamacpp <model.gguf> [tokens]}"
+tok="${2:-256}"
+main -m "$model" -n "$tok" -p "$(cat)" 2>/dev/null

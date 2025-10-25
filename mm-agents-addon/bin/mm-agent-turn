@@ -1,0 +1,60 @@
+#!/bin/sh
+set -eu
+ROOT=${MM_ROOT:-/games/mm}
+[ -n "${MM_SESSION-}" ] || { echo "MM_SESSION not set"; exit 2; }
+camp="$1"; prof="$2"; shift 2
+adapter="${*:-/games/mm/agents/adapters/model-stdin}"
+profile="$ROOT/agents/profiles/$prof"
+[ -f "$profile" ] || { echo "no such profile: $profile"; exit 1; }
+getkv(){ awk -F= -v k="$1" '$1==k{ $1=""; sub(/^=/,""); print $0 }' "$profile" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//'; }
+name="$(getkv name)"
+persona="$(getkv persona)"
+goals="$(getkv goals)"
+style="$(getkv style)"
+charfile_rel="$(getkv character_file)"
+playbook="$(getkv playbook)"
+charfile="$ROOT/${charfile_rel:-campaign/$camp/pcs/${name// /_}.mm}"
+LOGCTX="$(tail -n 40 "$MM_SESSION/log.txt" 2>/dev/null || true)"
+MAPCTX="$(sed -n '1,40p' "$MM_SESSION/map.txt" 2>/dev/null || true)"
+CHARCTX="$(sed -n '1,80p' "$charfile" 2>/dev/null || echo '(no character file)')"
+PREAMBLE="$(cat "$ROOT/agents/system_prompts/mm_agent_preamble.txt")"
+cat >"$MM_SESSION/.agent_prompt.tmp"<<EOF
+$PREAMBLE
+
+SESSION CONTEXT (recent log):
+$LOGCTX
+
+CURRENT MAP (top):
+$MAPCTX
+
+CHARACTER:
+$CHARCTX
+
+AGENT BRIEF:
+Name: $name
+Persona: $persona
+Goals: $goals
+Style: $style
+Playbook: $playbook
+
+Now produce ONE block for $name.
+EOF
+OUT="$(cat "$MM_SESSION/.agent_prompt.tmp" | sh -c "$adapter")"
+BLOCK="$(printf "%s\n" "$OUT" | awk '/BEGIN MM-ACT/{flag=1; next} /END MM-ACT/{flag=0} flag')"
+say="$(printf "%s\n" "$BLOCK" | awk -F': ' 'toupper($1)=="SAY"{sub(/^[^:]+: /,"",$0); print $0}')"
+roll="$(printf "%s\n" "$BLOCK" | awk -F': ' 'toupper($1)=="ROLL"{sub(/^[^:]+: /,"",$0); print $0}' | head -1)"
+cmd="$(printf "%s\n" "$BLOCK" | awk -F': ' 'toupper($1)=="CMD"{sub(/^[^:]+: /,"",$0); print $0}')"
+[ -n "$say" ] && mm-say "$say"
+if [ -n "$roll" ]; then
+  case "$roll" in
+    d*|*d*|n6:*|coin) mm-roll "$roll" ;;
+    *) mm-note "Agent $name suggested suspicious roll: '$roll' (ignored)";;
+  esac
+fi
+if [ -n "$cmd" ]; then
+  case "$cmd" in
+    "initiative add "*) eval "mm-initiative ${cmd#initiative }" ;;
+    "map note "*) mm-note "MAP: ${cmd#map note }" ;;
+    *) mm-note "Agent $name requested unsupported CMD: $cmd" ;;
+  esac
+fi

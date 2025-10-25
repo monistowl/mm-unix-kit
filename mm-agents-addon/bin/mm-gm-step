@@ -1,0 +1,31 @@
+#!/bin/sh
+# usage: mm-gm-step <campaign> [adapter...]
+set -eu
+ROOT=${MM_ROOT:-/games/mm}
+[ -n "${MM_SESSION-}" ] || { echo "MM_SESSION not set"; exit 2; }
+camp="${1:?}"; shift 1
+adapter="${*:-/games/mm/agents/adapters/model-stdin}"
+PRE="$ROOT/agents/system_prompts/mm_referee_preamble.txt"
+
+LOGCTX="$(tail -n 60 "$MM_SESSION/log.txt" 2>/dev/null || true)"
+MAPCTX="$(sed -n '1,40p' "$MM_SESSION/map.txt" 2>/dev/null || true)"
+
+cat >"$MM_SESSION/.gm_prompt.tmp"<<EOF
+$(cat "$PRE")
+
+RECENT LOG (tail 60):
+$LOGCTX
+
+CURRENT MAP (top):
+$MAPCTX
+
+Now produce one GM beat using BEGIN GM-ACT...END GM-ACT.
+EOF
+
+OUT="$(cat "$MM_SESSION/.gm_prompt.tmp" | sh -c "$adapter")"
+printf "%s\n" "$OUT" > "$MM_SESSION/.gm_act.out"
+awk '/BEGIN GM-ACT/{f=1} /END GM-ACT/{print; f=0} f' "$MM_SESSION/.gm_act.out" > "$MM_SESSION/.gm_act.block"
+mm-apply-edit "$MM_SESSION/.gm_act.block" || true
+# Execute CALLS lines
+awk '/^CALLS:/{c=1;next} /^ASIDES:/{c=0} c && /^\s*-\s/{sub(/^\s*-\s*/,""); print}' "$MM_SESSION/.gm_act.block" | while IFS= read -r cmd; do eval "$cmd"; done
+

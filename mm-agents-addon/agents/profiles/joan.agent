@@ -1,0 +1,6 @@
+name=Joan of Artois
+persona=Brave, plain-spoken, suspicious of magic, cares for townsfolk.
+goals=Protect innocents; repay a debt; find the truth behind relics.
+style=Short sentences, concrete actions; announces rolls explicitly.
+character_file=campaign/Antwerp-HYW/pcs/Joan_of_Artois.mm
+playbook=attack-if-threat,survey-if-quiet,parley-if-offered

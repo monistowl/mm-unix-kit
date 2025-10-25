@@ -1,0 +1,25 @@
+#!/bin/sh
+set -eu
+camp="${1:?}"; agents_spec="${2:?}"; rounds="${3:?}"
+shift 3 || true
+adapter="${*:-/games/mm/agents/adapters/model-stdin}"
+if printf "%s" "$agents_spec" | grep -q '[*?]'; then
+  agents=$(ls -1 $agents_spec 2>/dev/null | xargs -n1 basename || true)
+else
+  agents="$agents_spec"
+fi
+alist=""
+for a in $agents; do
+  base="${a##*/}"; case "$base" in
+    *.agent) alist="$alist $base" ;;
+    *)       alist="$alist ${base}.agent" ;;
+  esac
+done
+r=1
+while [ $r -le "$rounds" ]; do
+  for a in $alist; do
+    mm-agent-turn "$camp" "$a" $adapter || mm-note "Agent turn failed for $a"
+    sleep 0.5
+  done
+  r=$((r+1))
+done

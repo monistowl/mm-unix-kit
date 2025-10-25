@@ -1,0 +1,3 @@
+#!/bin/sh
+: "${MODEL_CMD:?set MODEL_CMD to a command that reads prompt from stdin}"
+sh -c "$MODEL_CMD"

@@ -1,0 +1,6 @@
+name=Martin the Miller
+persona=Cautious and practical; hates risk; knows the alleys.
+goals=Keep the group fed; avoid curses; get paid.
+style=Talks too much when nervous; hedges; asks the ref questions.
+character_file=campaign/Antwerp-HYW/pcs/Martin_the_Miller.mm
+playbook=survey-if-quiet,parley-if-offered,attack-if-threat

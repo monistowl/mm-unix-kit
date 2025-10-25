@@ -1,0 +1,18 @@
+#!/bin/sh
+set -eu
+ROOT=${MM_ROOT:-/games/mm}
+camp="$1"; prof="$2"
+profile="$ROOT/agents/profiles/$prof"
+getkv(){ awk -F= -v k="$1" '$1==k{ $1=""; sub(/^=/,""); print $0 }' "$profile" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//'; }
+name="$(getkv name)"
+playbook="$(getkv playbook)"
+say_attack(){ mm-say "$name: \"I strike while it’s open!\"" ; mm-roll d20; }
+say_survey(){ mm-say "$name: \"I look around for danger.\"" ; mm-skill 5+ ; }
+say_parley(){ mm-say "$name: \"Hold. Speak your terms.\"" ; }
+pick="$(printf "%s" "$playbook" | tr ',' '\n' | shuf -n1 2>/dev/null || echo survey-if-quiet)"
+case "$pick" in
+  attack-*) say_attack ;;
+  survey-*) say_survey ;;
+  parley-*) say_parley ;;
+  *)        say_survey ;;
+esac

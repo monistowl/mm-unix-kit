@@ -1,0 +1,54 @@
+#!/bin/sh
+# usage: mm-apply-edit <gm_act_block_file>
+set -eu
+ROOT=${MM_ROOT:-/games/mm}
+[ -n "${MM_SESSION-}" ] || { echo "MM_SESSION not set"; exit 2; }
+blk="${1:?}"
+# Extract EDIT segments
+awk '/^EDIT:/{e=1;next} /^END GM-ACT/{e=0} e{print}' "$blk" | while IFS= read -r line; do
+  case "$line" in
+    "  - TABLE:"*)
+      f=$(printf "%s" "$line" | awk '{print $3}')
+      path="$ROOT/campaign/$(basename "$(dirname "$MM_SESSION")")/$f"
+      mkdir -p "$(dirname "$path")"
+      # Slurp here-doc
+      read _arrow _here <<EOF
+$line
+EOF
+      ;;
+    "    "*)
+      # body lines → buffer
+      body="${body}${line#    }\n"
+      ;;
+    "    <<TSV")
+      :
+      ;;
+    "  - MAP:"*)
+      f=$(printf "%s" "$line" | awk '{print $3}')
+      path="$MM_SESSION/$(basename "$f")"
+      mode="map"
+      body=""
+      ;;
+    "    <<ASCII")
+      :
+      ;;
+    *)
+      # noop
+      :
+      ;;
+  esac
+  # Commit when next item or end arrives
+done
+
+# Simpler, safer version (stateless): append all TABLE blocks; replace map.txt if small
+awk '
+  /^  - TABLE:/ {mode="tbl"; split($3, p, "->"); gsub(/^lib\//,"",p[1]); file=p[1]; gsub(/^[[:space:]]+|[[:space:]]+$/,"",file); next}
+  mode=="tbl" && /^    weight/ {print > ".tmp_table"; next}
+  mode=="tbl" && /^    <<TSV/ {close(".tmp_table"); system("mkdir -p \"'$ROOT'/campaign/$(basename $(dirname \"'$MM_SESSION'\"))/lib/tables\""); system("cat .tmp_table >> \"'$ROOT'/campaign/$(basename $(dirname \"'$MM_SESSION'\"))/lib/tables/" file "\""); mode=""; next}
+  mode=="tbl" && /^    / {sub(/^    /,""); print >> ".tmp_table"; next}
+  /^  - MAP:/ {mode="map"; next}
+  mode=="map" && /^    @ / {print > "'$MM_SESSION'/map.txt.tmp"; next}
+  mode=="map" && /^    [#\.\~A-Za-z0-9 ]/ {sub(/^    /,""); print >> "'$MM_SESSION'/map.txt.tmp"; next}
+  mode=="map" && /^    <<ASCII/ {close("'$MM_SESSION'/map.txt.tmp"); system("wc -l < \"'$MM_SESSION'/map.txt.tmp\" | awk \047$1<=120\047 && mv \"'$MM_SESSION'/map.txt.tmp\" \"'$MM_SESSION'/map.txt\" || rm -f \"'$MM_SESSION'/map.txt.tmp\""); mode=""; next}
+' "$blk" >/dev/null 2>&1 || true
+
